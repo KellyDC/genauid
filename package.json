@@ -1,6 +1,6 @@
 {
     "name": "genauid",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A lean, fast, and efficient Node.js package for generating time-based, sortable, and unique UUIDs with TOTP-inspired design for use as database primary keys.",
     "main": "dist/index.cjs",
     "types": "dist/index.d.ts",
