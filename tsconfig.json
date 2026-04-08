@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    // Type-check the hand-written declarations and JS source; emit nothing.
+    "noEmit": true,
+    "declaration": false,
+
+    // Target ES2020 so bigint (used in decodeTimestamp) is a native type.
+    "target": "ES2020",
+    "lib": ["ES2020"],
+
+    // Node16 validates the exports map and enforces correct import/require
+    // extension rules during development type-checking. The package ships
+    // both CJS (dist/index.cjs) and ESM (dist/index.mjs) via the build step.
+    "module": "Node16",
+    "moduleResolution": "node16",
+
+    // Enable JS type-checking via JSDoc annotations.
+    "allowJs": true,
+    "checkJs": true,
+
+    // Strict type safety.
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+
+    // Catch unused locals and parameters.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // Ensure consistent casing in imports across platforms.
+    "forceConsistentCasingInFileNames": true,
+
+    // Allow default imports from CommonJS modules (improves DX for TS consumers).
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Pull in Node.js built-in type definitions.
+    "types": ["node"]
+  },
+  "include": ["src/**/*.js", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "coverage", "tests"]
+}
