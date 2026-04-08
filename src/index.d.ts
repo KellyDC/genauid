@@ -27,15 +27,24 @@ export interface GenerateOptions {
   separator?: string;
 }
 
+export type SuffixMode = 'none' | 'random' | 'timestamp';
+
 export interface SlugOptions {
-  /** Number of leading chars reserved for the timestamp. Default: 10 */
-  tsLength?: number;
-  /** Number of random (suffix) chars. Default: 8 */
-  randomLength?: number;
   /** Character set to use. Default: CHARSETS.SLUG */
   charset?: string;
-  /** Separator between timestamp and random parts. Default: '-' */
+  /** Separator between parts. Default: '-' */
   separator?: string;
+  /**
+   * Suffix mode for uniqueness:
+   * - `'none'`      – plain slug, no suffix (default).
+   * - `'random'`    – append a cryptographically random string.
+   * - `'timestamp'` – append an encoded timestamp + random string.
+   */
+  suffix?: SuffixMode;
+  /** Chars for the random part (suffix: 'random' or 'timestamp'). Default: 8 */
+  randomLength?: number;
+  /** Chars for the timestamp part (suffix: 'timestamp'). Default: 10 */
+  tsLength?: number;
 }
 
 export interface ValidateOptions {
@@ -73,14 +82,16 @@ export interface ValidationResult {
 export declare function generate(options?: GenerateOptions): string;
 
 /**
- * Generate a human-readable, time-based, sortable slug.
+ * Convert a string into a URL-friendly slug, with an optional uniqueness suffix.
  *
  * @example
- * import { generateSlug } from 'genauid';
- * const slug = generateSlug();                        // '01j3rvmq8z-k4xntbpd'
- * const slug = generateSlug({ separator: '_', randomLength: 12 });
+ * import { slugify } from 'genauid';
+ * slugify('Hello World!')                                    // 'hello-world'
+ * slugify('Hello World!', { suffix: 'random' })             // 'hello-world-a3b8x2k4'
+ * slugify('Hello World!', { suffix: 'timestamp' })          // 'hello-world-0w3kz8a9-xy4b'
+ * slugify('Café au lait', { separator: '_' })               // 'cafe_au_lait'
  */
-export declare function generateSlug(options?: SlugOptions): string;
+export declare function slugify(str: string, options?: SlugOptions): string;
 
 /**
  * Validate a previously generated ID.

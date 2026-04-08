@@ -3,7 +3,7 @@
 
 const { validate, decodeTimestamp } = require('../src/validator');
 const { generate } = require('../src/generator');
-const { generateSlug } = require('../src/slug');
+const { slugify } = require('../src/slug');
 const { CHARSETS } = require('../src/constants');
 
 describe('validate() — valid IDs', () => {
@@ -35,8 +35,10 @@ describe('validate() — valid IDs', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('accepts slug generated with generateSlug()', () => {
-    const slug = generateSlug();
+  test('accepts slug generated with slugify() timestamp suffix (no text body)', () => {
+    // When the input produces an empty slug body (all-invalid chars), slugify()
+    // returns <timestamp><sep><random> — the same structure the validator expects.
+    const slug = slugify('!!!', { suffix: 'timestamp' });
     const result = validate(slug, {
       charset: CHARSETS.SLUG,
       separator: '-',

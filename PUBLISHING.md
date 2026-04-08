@@ -227,6 +227,10 @@ Use [Keep a Changelog](https://keepachangelog.com) format. Create `CHANGELOG.md`
 - Built-in character sets: BASE32, SLUG, ALPHANUMERIC, HEX.
 - Full TypeScript declarations.
 - 71 unit tests; ≥ 97% branch coverage.
+
+## [1.1.0] - 2026-04-09
+### Changed
+- Replaced `generateSlug()` with `slugify(str, options)` — supports plain, random-suffix, and timestamp-suffix modes.
 ```
 
 ---

@@ -10,7 +10,7 @@ Inspired by the stern and precise First-Class Mage Genau from Frieren: Beyond Jo
 - **Cryptographically random** — uses Node.js `crypto.randomBytes` with bias elimination, never `Math.random()`.
 - **No external runtime dependencies** — built entirely on Node.js built-ins.
 - **Highly customisable** — length, character set, timestamp width, and separator are all configurable.
-- **Human-readable slugs** — an optional slug generator produces IDs like `01j3rvmq8z-k4xntbpd`.
+- **Human-readable slugs** — `slugify()` converts any string to a URL-safe slug, with optional random or timestamp suffix for collision avoidance.
 - **Validation** — built-in validator checks format, character set, and optionally enforces a maximum age.
 - **Full TypeScript types** — ships with `.d.ts` declarations.
 - **≥ 90% test coverage** — 71 tests covering edge cases, security, and performance.
@@ -28,15 +28,19 @@ npm install genauid
 ## Quick Start
 
 ```js
-const { generate, generateSlug, validate, CHARSETS } = require('genauid');
+const { generate, slugify, validate, CHARSETS } = require('genauid');
 
 // Generate a time-based sortable ID (26 chars, BASE32 charset by default)
 const id = generate();
 console.log(id); // e.g. '01J3RVMQ8Z4KXNTBPD6S7WHMF'
 
-// Generate a human-readable slug
-const slug = generateSlug();
-console.log(slug); // e.g. '01j3rvmq8z-k4xntbpd'
+// Slugify a string (plain)
+const slug = slugify('Hello World');
+console.log(slug); // 'hello-world'
+
+// Slugify with a timestamp suffix for collision-safe unique slugs
+const uniqueSlug = slugify('Hello World', { suffix: 'timestamp' });
+console.log(uniqueSlug); // e.g. 'hello-world-01j3rvmq8z-k4xntbpd'
 
 // Validate a previously generated ID
 const result = validate(id);
@@ -86,37 +90,46 @@ generate({ charset: CHARSETS.HEX, length: 32 });
 
 ---
 
-### `generateSlug(options?): string`
+### `slugify(str, options?): string`
 
-Generates a human-readable, time-based, sortable slug.
+Converts a string into a URL-friendly slug. Optionally appends a random or timestamp-based suffix to guarantee uniqueness.
 
 #### Options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `tsLength` | `number` | `10` | Characters for the timestamp prefix. |
-| `randomLength` | `number` | `8` | Characters for the random suffix. |
-| `charset` | `string` | `CHARSETS.SLUG` | Character set (lowercase alphanumeric by default). |
-| `separator` | `string` | `'-'` | Separator between timestamp and random parts. |
+| `charset` | `string` | `CHARSETS.SLUG` | Character set to allow (lowercase alphanumeric by default). |
+| `separator` | `string` | `'-'` | Separator used between words and suffix parts. |
+| `suffix` | `'none'\|'random'\|'timestamp'` | `'none'` | Suffix mode: `'none'` = plain slug; `'random'` = append random string; `'timestamp'` = append encoded timestamp + random string. |
+| `randomLength` | `number` | `8` | Characters for the random part (used when `suffix` is `'random'` or `'timestamp'`). |
+| `tsLength` | `number` | `10` | Characters for the timestamp part (used when `suffix` is `'timestamp'`). |
 
 #### Examples
 
 ```js
-// Default
-generateSlug();
-// '01j3rvmq8z-k4xntbpd'
+// Plain slug
+slugify('Hello World!');
+// 'hello-world'
+
+// Diacritics / accents are removed
+slugify('Café au lait');
+// 'cafe-au-lait'
 
 // Custom separator
-generateSlug({ separator: '_' });
-// '01j3rvmq8z_k4xntbpd'
+slugify('Café au lait', { separator: '_' });
+// 'cafe_au_lait'
 
-// Longer random suffix
-generateSlug({ randomLength: 12 });
-// '01j3rvmq8z-k4xntbpd6s7wh'
+// Append a random suffix (collision-resistant)
+slugify('Hello World', { suffix: 'random' });
+// 'hello-world-a3b8x2k4'
 
-// Dense (no separator)
-generateSlug({ separator: '', tsLength: 10, randomLength: 8 });
-// '01j3rvmq8zk4xntbpd'
+// Append a timestamp + random suffix (sortable and collision-safe)
+slugify('Hello World', { suffix: 'timestamp' });
+// 'hello-world-01j3rvmq8z-k4xntbpd'
+
+// Custom suffix length
+slugify('Hello World', { suffix: 'random', randomLength: 12 });
+// 'hello-world-a3b8x2k4j9p2'
 ```
 
 ---
@@ -199,7 +212,7 @@ Built-in character sets:
 | Name | Characters | Notes |
 |---|---|---|
 | `CHARSETS.BASE32` | `0–9 A–Z` (Crockford variant) | Default for `generate()`. Excludes `I`, `L`, `O`, `U` to avoid visual confusion. |
-| `CHARSETS.SLUG` | `0–9 a–z` | Default for `generateSlug()`. URL-safe, lowercase. |
+| `CHARSETS.SLUG` | `0–9 a–z` | Default for `slugify()`. URL-safe, lowercase. |
 | `CHARSETS.ALPHANUMERIC` | `0–9 A–Z a–z` | Maximum density (62 symbols). |
 | `CHARSETS.HEX` | `0–9 a–f` | Hexadecimal — lowest density, widest compatibility. |
 
@@ -250,7 +263,7 @@ Benchmarked on Node.js 24 (Apple M-class / modern x86):
 | Operation | Throughput |
 |---|---|
 | `generate()` | > 100,000 IDs/s |
-| `generateSlug()` | > 100,000 slugs/s |
+| `slugify()` (plain) | > 100,000 slugs/s |
 | `validate()` | > 500,000 validations/s |
 
 Run the built-in performance tests:
@@ -313,10 +326,11 @@ Manual review — all clear
 The package ships with a hand-written `src/index.d.ts` and an `exports` map, so it works out of the box with all TypeScript `moduleResolution` modes — including `node`, `node16`, and `bundler`.
 
 ```ts
-import { generate, generateSlug, validate, CHARSETS } from 'genauid';
+import { generate, slugify, validate, CHARSETS } from 'genauid';
 import type { GenerateOptions, SlugOptions, ValidateOptions, ValidationResult } from 'genauid';
 
 const id: string = generate({ length: 32, charset: CHARSETS.ALPHANUMERIC });
+const slug: string = slugify('Hello World', { suffix: 'timestamp' });
 const result: ValidationResult = validate(id);
 ```
 

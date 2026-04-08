@@ -8,8 +8,8 @@ describe('index re-exports', () => {
     expect(typeof genauid.generate).toBe('function');
   });
 
-  test('exports generateSlug function', () => {
-    expect(typeof genauid.generateSlug).toBe('function');
+  test('exports slugify function', () => {
+    expect(typeof genauid.slugify).toBe('function');
   });
 
   test('exports validate function', () => {
@@ -40,13 +40,14 @@ describe('index re-exports', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('end-to-end: generateSlug → validate round-trip', () => {
-    const slug = genauid.generateSlug();
-    const result = genauid.validate(slug, {
-      charset: genauid.CHARSETS.SLUG,
-      separator: '-',
-      tsLength: 10,
-    });
-    expect(result.valid).toBe(true);
+  test('end-to-end: slugify with timestamp suffix → contains slug charset chars', () => {
+    const slug = genauid.slugify('Hello World', { suffix: 'timestamp' });
+    expect(typeof slug).toBe('string');
+    expect(slug).toContain('hello');
+    expect(slug).toContain('world');
+    const allowed = new Set([...genauid.CHARSETS.SLUG, '-']);
+    for (const char of slug) {
+      expect(allowed.has(char)).toBe(true);
+    }
   });
 });

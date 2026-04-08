@@ -4,18 +4,26 @@ const { CHARSETS, DEFAULTS } = require('./constants');
 const { randomString, encodeTimestamp } = require('./utils');
 
 /**
+ * @typedef {'none'|'random'|'timestamp'} SuffixMode
+ *
  * @typedef {Object} SlugOptions
- * @property {number}  [tsLength=10]      - Chars for the timestamp prefix.
- * @property {number}  [randomLength=8]   - Chars for the random suffix.
- * @property {string}  [charset]          - Character set (defaults to SLUG).
- * @property {string}  [separator='-']    - Separator between timestamp and random parts.
+ * @property {string}     [charset]           - Character set (defaults to SLUG).
+ * @property {string}     [separator='-']     - Separator between parts.
+ * @property {SuffixMode} [suffix='none']     - Suffix mode:
+ *   - `'none'`      – plain slug, no suffix (default).
+ *   - `'random'`    – append a cryptographically random string.
+ *   - `'timestamp'` – append an encoded timestamp + random string for collision safety.
+ * @property {number}     [randomLength=8]    - Chars for the random part (suffix: 'random' or 'timestamp').
+ * @property {number}     [tsLength=10]       - Chars for the timestamp part (suffix: 'timestamp').
  */
 
+const SUFFIX_MODES = new Set(['none', 'random', 'timestamp']);
+
 /**
- * Validate and normalise options for generateSlug().
+ * Validate and normalise slug options.
  *
  * @param {SlugOptions} opts
- * @returns {{ tsLength: number, randomLength: number, charset: string, separator: string }}
+ * @returns {{ tsLength: number, randomLength: number, charset: string, separator: string, suffix: SuffixMode }}
  */
 function normaliseSlugOptions(opts = {}) {
   const charset = opts.charset !== undefined ? opts.charset : CHARSETS.SLUG;
@@ -24,12 +32,16 @@ function normaliseSlugOptions(opts = {}) {
     throw new TypeError('charset must be a string with at least 2 characters');
   }
 
-  const unique = [...new Set(charset)];
-  if (unique.length !== charset.length) {
+  if ([...new Set(charset)].length !== charset.length) {
     throw new TypeError('charset must not contain duplicate characters');
   }
 
   const separator = opts.separator !== undefined ? String(opts.separator) : '-';
+
+  const suffix = opts.suffix !== undefined ? opts.suffix : 'none';
+  if (!SUFFIX_MODES.has(suffix)) {
+    throw new TypeError(`suffix must be one of: ${[...SUFFIX_MODES].join(', ')}`);
+  }
 
   const tsLength =
     opts.tsLength !== undefined ? Math.floor(opts.tsLength) : DEFAULTS.TIMESTAMP_LENGTH;
@@ -45,38 +57,56 @@ function normaliseSlugOptions(opts = {}) {
     throw new RangeError('randomLength must be at least 1');
   }
 
-  const totalLength = tsLength + separator.length + randomLength;
-  if (totalLength > DEFAULTS.MAX_LENGTH) {
-    throw new RangeError(
-      `Combined length (${totalLength}) exceeds maximum of ${DEFAULTS.MAX_LENGTH}`
-    );
-  }
-
-  return { tsLength, randomLength, charset, separator };
+  return { tsLength, randomLength, charset, separator, suffix };
 }
 
 /**
- * Generate a human-readable, time-based, sortable slug.
+ * Convert a string into a URL-friendly slug, with an optional uniqueness suffix.
  *
- * The slug is composed of a timestamp prefix (chronologically sortable) and a
- * random suffix separated by a configurable separator.  By default the output
- * looks like: `01j3rvmq8z-k4xntbpd`.
- *
+ * @param {string}      str          - Input string to slugify.
  * @param {SlugOptions} [options={}]
- * @returns {string} The generated slug.
+ * @returns {string}
  *
  * @example
- * const slug = generateSlug();                        // '01j3rvmq8z-k4xntbpd'
- * const slug = generateSlug({ separator: '_', randomLength: 12 });
+ * slugify('Hello World!')                                       // 'hello-world'
+ * slugify('Hello World!', { suffix: 'random' })                // 'hello-world-a3b8x2k4'
+ * slugify('Hello World!', { suffix: 'random', randomLength: 12 }) // 'hello-world-a3b8x2k4j9p2'
+ * slugify('Hello World!', { suffix: 'timestamp' })             // 'hello-world-0w3kz8a9-xy4b'
+ * slugify('Café au lait', { separator: '_' })                  // 'cafe_au_lait'
  */
-function generateSlug(options = {}) {
-  const { tsLength, randomLength, charset, separator } = normaliseSlugOptions(options);
+function slugify(str, options = {}) {
+  const { charset, separator, suffix, tsLength, randomLength } = normaliseSlugOptions(options);
 
-  const ts = BigInt(Date.now());
-  const tsPart = encodeTimestamp(ts, tsLength, charset);
-  const randPart = randomString(randomLength, charset);
+  const escapedCharset = charset.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const escapedSep = separator ? separator.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') : '';
+  // eslint-disable-next-line security/detect-non-literal-regexp -- escapedCharset and escapedSep are sanitised above
+  const invalidChars = new RegExp(`[^${escapedCharset}${escapedSep}]`, 'g');
 
-  return tsPart + separator + randPart;
+  let slug = str
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(invalidChars, separator);
+
+  if (separator) {
+    slug = slug
+      // eslint-disable-next-line security/detect-non-literal-regexp -- escapedSep is sanitised above
+      .replace(new RegExp(`${escapedSep}+`, 'g'), separator)
+      // eslint-disable-next-line security/detect-non-literal-regexp -- escapedSep is sanitised above
+      .replace(new RegExp(`^${escapedSep}+|${escapedSep}+$`, 'g'), '');
+  }
+
+  if (suffix === 'none') return slug;
+
+  const rand = randomString(randomLength, charset);
+
+  if (suffix === 'random') {
+    return slug ? `${slug}${separator}${rand}` : rand;
+  }
+
+  // suffix === 'timestamp': encoded timestamp + random for collision safety
+  const ts = encodeTimestamp(BigInt(Date.now()), tsLength, charset);
+  return slug ? `${slug}${separator}${ts}${separator}${rand}` : `${ts}${separator}${rand}`;
 }
 
-module.exports = { generateSlug, normaliseSlugOptions, CHARSETS };
+module.exports = { slugify, normaliseSlugOptions, CHARSETS };
