@@ -1,23 +1,24 @@
 # genauid
 
-GenauID is a high-performance Node.js utility for generating time-based, lexicographically sortable, and cryptographically random unique identifiers.
+GenauID is a high-performance, environment-agnostic utility for generating time-based, lexicographically sortable, and cryptographically random unique identifiers. It works in Node.js, browsers, Cloudflare Workers, Deno, and Bun.
 
 Inspired by the stern and precise First-Class Mage Genau from Frieren: Beyond Journey's End, this package is designed for systems where order, efficiency, and unwavering reliability are non-negotiable.
 
 ## Key Features
 
 - **Sortable by creation time** — lexicographic order equals chronological order, enabling efficient B-tree index range scans.
-- **Cryptographically random** — uses Node.js `crypto.randomBytes` with bias elimination, never `Math.random()`.
-- **No external runtime dependencies** — built entirely on Node.js built-ins.
+- **Cryptographically random** — uses `globalThis.crypto.getRandomValues()` with bias elimination, never `Math.random()`.
+- **Environment-agnostic** — no Node.js built-ins required; works in browsers, Cloudflare Workers, Deno, and Bun out of the box.
+- **Dual CJS + ESM output** — ships `dist/index.cjs` and `dist/index.mjs` with full tree-shaking support (`"sideEffects": false`).
 - **Highly customisable** — length, character set, timestamp width, and separator are all configurable.
 - **Human-readable slugs** — `slugify()` converts any string to a URL-safe slug, with optional random or timestamp suffix for collision avoidance.
 - **Validation** — built-in validator checks format, character set, and optionally enforces a maximum age.
-- **Full TypeScript types** — ships with `.d.ts` declarations.
-- **≥ 90% test coverage** — 71 tests covering edge cases, security, and performance.
+- **Full TypeScript types** — `.d.ts` / `.d.mts` declarations generated from TypeScript source.
+- **100% test coverage** — 92 tests covering edge cases, security, and performance.
 
 ## Requirements
 
-- Node.js ≥ 16.0.0
+- Node.js ≥ 15, **or** any runtime that exposes the Web Crypto API (`globalThis.crypto`): modern browsers, Cloudflare Workers, Deno, Bun.
 
 ## Installation
 
@@ -28,7 +29,7 @@ npm install genauid
 ## Quick Start
 
 ```js
-const { generate, slugify, validate, CHARSETS } = require('genauid');
+import { generate, slugify, validate, CHARSETS } from 'genauid';
 
 // Generate a time-based sortable ID (26 chars, BASE32 charset by default)
 const id = generate();
@@ -196,7 +197,7 @@ validate(slug, {
 Decodes the timestamp prefix of an ID back into a BigInt millisecond value.
 
 ```js
-const { decodeTimestamp, CHARSETS } = require('genauid');
+import { decodeTimestamp, CHARSETS } from 'genauid';
 
 const tsPart = id.slice(0, 10);
 const ms = decodeTimestamp(tsPart, CHARSETS.BASE32);
@@ -215,6 +216,15 @@ Built-in character sets:
 | `CHARSETS.SLUG` | `0–9 a–z` | Default for `slugify()`. URL-safe, lowercase. |
 | `CHARSETS.ALPHANUMERIC` | `0–9 A–Z a–z` | Maximum density (62 symbols). |
 | `CHARSETS.HEX` | `0–9 a–f` | Hexadecimal — lowest density, widest compatibility. |
+
+#### `CHARSET` alias
+
+`CHARSET` is a convenience alias for `CHARSETS`, enabling the single-word import pattern:
+
+```js
+import { generate, slugify, CHARSET } from 'genauid';
+generate({ charset: CHARSET.BASE32 });
+```
 
 You can also pass any **custom string** as a charset. Requirements:
 - Minimum 2 characters.
@@ -249,9 +259,9 @@ With a 16-character BASE32 random suffix the probability of a collision within t
 
 ## Security considerations
 
-- The random component is generated with `crypto.randomBytes`, which is cryptographically secure.
+- The random component is generated with `globalThis.crypto.getRandomValues()`, which is cryptographically secure across all supported runtimes.
 - Modulo bias is eliminated by rejection sampling.
-- The validation function uses `crypto.timingSafeEqual` for string comparisons to prevent timing attacks.
+- The validation function uses a pure constant-time XOR comparison to prevent timing attacks (no longer depends on Node's `timingSafeEqual`).
 - IDs embed a timestamp and are therefore **not suitable as opaque secrets** (an attacker can determine when an ID was created). Use them as primary keys, not as authentication tokens.
 
 ---
@@ -289,7 +299,7 @@ Coverage thresholds (enforced):
 
 Actual coverage of this release: 100% statements, 97.84% branches, 100% functions, 100% lines.
 
-76 tests pass, ESLint clean, 100% statement/function/line coverage. 
+92 tests pass, ESLint clean, 100% statement/function/line coverage.
 
 
 Here's the full security assessment:
@@ -308,9 +318,9 @@ Manual review — all clear
 
 | Area | What was checked | Status |
 |---|---|---|
-| Random generation | crypto.randomBytes only — no Math.random() | ✅ |
+| Random generation | globalThis.crypto.getRandomValues() only — no Math.random() | ✅ |
 | Modulo bias | Rejection sampling eliminates skew | ✅ |
-| Timing attacks | crypto.timingSafeEqual used for string comparison | ✅ |
+| Timing attacks | Pure constant-time XOR comparison — no Node.js dependency | ✅ |
 | RegExp injection | escapeRegex() sanitises separator before new RegExp() | ✅ |
 | eval / new Function | None present | ✅ |
 | Prototype pollution | Options read with !== undefined guards, not in or bare access | ✅ |
@@ -323,10 +333,10 @@ Manual review — all clear
 
 ## TypeScript
 
-The package ships with a hand-written `src/index.d.ts` and an `exports` map, so it works out of the box with all TypeScript `moduleResolution` modes — including `node`, `node16`, and `bundler`.
+The package ships with `.d.ts` and `.d.mts` declaration files generated from TypeScript source (no hand-written stubs). An `exports` map ensures it works out of the box with all TypeScript `moduleResolution` modes — including `node`, `node16`, and `bundler`.
 
 ```ts
-import { generate, slugify, validate, CHARSETS } from 'genauid';
+import { generate, slugify, validate, CHARSETS, CHARSET } from 'genauid';
 import type { GenerateOptions, SlugOptions, ValidateOptions, ValidationResult } from 'genauid';
 
 const id: string = generate({ length: 32, charset: CHARSETS.ALPHANUMERIC });

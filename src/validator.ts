@@ -1,23 +1,35 @@
-'use strict';
+import { CHARSETS, DEFAULTS } from './constants';
 
-const { CHARSETS, DEFAULTS } = require('./constants');
+export interface ValidateOptions {
+  /** Expected character set. Default: CHARSETS.BASE32 */
+  charset?: string;
+  /** Expected total length (optional). */
+  length?: number;
+  /** Expected separator used during generation. Default: '' */
+  separator?: string;
+  /** Expected timestamp prefix length. Default: 10 */
+  tsLength?: number;
+  /** Maximum age in milliseconds; older IDs will be rejected (optional). */
+  maxAgeMs?: number;
+  /** Tolerated future clock skew in milliseconds. Default: 5000 */
+  clockSkewMs?: number;
+}
+
+export interface ValidationResult {
+  /** Whether the ID passed all checks. */
+  valid: boolean;
+  /** List of validation failure reasons (empty when valid). */
+  errors: string[];
+  /** Timestamp embedded in the ID, or null if extraction failed. */
+  timestamp: Date | null;
+}
 
 /**
- * @typedef {Object} ValidateOptions
- * @property {string}  [charset]      - Expected character set (defaults to BASE32).
- * @property {number}  [length]       - Expected total length. If omitted, only charset is checked.
- * @property {string}  [separator=''] - Expected separator used during generation.
- * @property {number}  [tsLength=10]  - Expected timestamp prefix length.
- * @property {number}  [maxAgeMs]     - If set, reject IDs whose embedded timestamp is older than this many milliseconds.
- * @property {number}  [clockSkewMs=5000] - Tolerated future clock skew in milliseconds.
+ * Escape a string for safe use in a RegExp.
  */
-
-/**
- * @typedef {Object} ValidationResult
- * @property {boolean} valid         - Whether the ID passed all checks.
- * @property {string[]} errors       - List of validation failure reasons (empty when valid).
- * @property {Date|null} timestamp   - Extracted timestamp, or null if extraction failed.
- */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 /**
  * Validate a generated ID.
@@ -29,12 +41,12 @@ const { CHARSETS, DEFAULTS } = require('./constants');
  * 4. The embedded timestamp is within a reasonable range (not in the distant
  *    future and not impossibly old).
  *
- * @param {string} id - The ID to validate.
- * @param {ValidateOptions} [options={}]
- * @returns {ValidationResult}
+ * @param id - The ID to validate.
+ * @param options - Validation options.
+ * @returns Validation result.
  */
-function validate(id, options = {}) {
-  const errors = [];
+export function validate(id: unknown, options: ValidateOptions = {}): ValidationResult {
+  const errors: string[] = [];
 
   // --- 1. Type check ---
   if (typeof id !== 'string' || id.length === 0) {
@@ -86,33 +98,29 @@ function validate(id, options = {}) {
   for (const char of idWithoutSeparator) {
     if (!charsetSet.has(char)) {
       errors.push(`Character '${char}' is not in the expected charset`);
-      break; // Report only the first offending character.
+      break;
     }
   }
 
   // --- 4. Timestamp range check ---
-  let extractedTimestamp = null;
+  let extractedTimestamp: Date | null = null;
   try {
-    // Extract the timestamp portion (before separator or first tsLength chars).
-    const tsPart = separator.length > 0 ? id.split(separator)[0] : id.slice(0, tsLength);
+    const tsPart = separator.length > 0 ? id.split(separator)[0]! : id.slice(0, tsLength);
 
     const ts = decodeTimestamp(tsPart, charset);
     extractedTimestamp = new Date(Number(ts));
 
     const now = Date.now();
 
-    // Reject IDs from the far future (more than clockSkewMs ahead).
     if (Number(ts) > now + clockSkewMs) {
       errors.push('Timestamp is in the future');
     }
 
-    // Reject impossibly old timestamps (before year 2000).
     const Y2K = 946684800000n; // 2000-01-01T00:00:00Z in ms
     if (ts < Y2K) {
       errors.push('Timestamp predates year 2000 — likely invalid');
     }
 
-    // Optional max-age check.
     if (options.maxAgeMs !== undefined && Number(ts) < now - Number(options.maxAgeMs)) {
       errors.push(`ID has expired (older than ${options.maxAgeMs} ms)`);
     }
@@ -130,11 +138,11 @@ function validate(id, options = {}) {
 /**
  * Decode a base-N encoded timestamp string back into a BigInt millisecond value.
  *
- * @param {string} encoded - The encoded timestamp string.
- * @param {string} charset - The character set used for encoding.
- * @returns {bigint}
+ * @param encoded - The encoded timestamp string.
+ * @param charset - The character set used for encoding.
+ * @returns Decoded timestamp in milliseconds as a BigInt.
  */
-function decodeTimestamp(encoded, charset) {
+export function decodeTimestamp(encoded: string, charset: string): bigint {
   const base = BigInt(charset.length);
   let result = 0n;
   for (const char of encoded) {
@@ -144,15 +152,3 @@ function decodeTimestamp(encoded, charset) {
   }
   return result;
 }
-
-/**
- * Escape a string for safe use in a RegExp.
- *
- * @param {string} str
- * @returns {string}
- */
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-module.exports = { validate, decodeTimestamp };

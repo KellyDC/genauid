@@ -105,5 +105,4 @@ version-major:
 # Full clean including node_modules
 distclean: clean
 	@echo "Removing node_modules..."
-	rm -rf node_modules package-lock.json
-
+	rm -rf node_modules package-lock.json *.tgz

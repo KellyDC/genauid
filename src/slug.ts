@@ -1,31 +1,40 @@
-'use strict';
+import { CHARSETS, DEFAULTS } from './constants';
+import { randomString, encodeTimestamp } from './utils';
 
-const { CHARSETS, DEFAULTS } = require('./constants');
-const { randomString, encodeTimestamp } = require('./utils');
+export type SuffixMode = 'none' | 'random' | 'timestamp';
 
-/**
- * @typedef {'none'|'random'|'timestamp'} SuffixMode
- *
- * @typedef {Object} SlugOptions
- * @property {string}     [charset]           - Character set (defaults to SLUG).
- * @property {string}     [separator='-']     - Separator between parts.
- * @property {SuffixMode} [suffix='none']     - Suffix mode:
- *   - `'none'`      – plain slug, no suffix (default).
- *   - `'random'`    – append a cryptographically random string.
- *   - `'timestamp'` – append an encoded timestamp + random string for collision safety.
- * @property {number}     [randomLength=8]    - Chars for the random part (suffix: 'random' or 'timestamp').
- * @property {number}     [tsLength=10]       - Chars for the timestamp part (suffix: 'timestamp').
- */
+export interface SlugOptions {
+  /** Character set to use. Default: CHARSETS.SLUG */
+  charset?: string;
+  /** Separator between parts. Default: '-' */
+  separator?: string;
+  /**
+   * Suffix mode for uniqueness:
+   * - `'none'`      – plain slug, no suffix (default).
+   * - `'random'`    – append a cryptographically random string.
+   * - `'timestamp'` – append an encoded timestamp + random string for collision safety.
+   */
+  suffix?: SuffixMode;
+  /** Chars for the random part (suffix: 'random' or 'timestamp'). Default: 8 */
+  randomLength?: number;
+  /** Chars for the timestamp part (suffix: 'timestamp'). Default: 10 */
+  tsLength?: number;
+}
 
-const SUFFIX_MODES = new Set(['none', 'random', 'timestamp']);
+interface NormalisedSlugOptions {
+  tsLength: number;
+  randomLength: number;
+  charset: string;
+  separator: string;
+  suffix: SuffixMode;
+}
+
+const SUFFIX_MODES = new Set<SuffixMode>(['none', 'random', 'timestamp']);
 
 /**
  * Validate and normalise slug options.
- *
- * @param {SlugOptions} opts
- * @returns {{ tsLength: number, randomLength: number, charset: string, separator: string, suffix: SuffixMode }}
  */
-function normaliseSlugOptions(opts = {}) {
+export function normaliseSlugOptions(opts: SlugOptions = {}): NormalisedSlugOptions {
   const charset = opts.charset !== undefined ? opts.charset : CHARSETS.SLUG;
 
   if (typeof charset !== 'string' || charset.length < 2) {
@@ -38,7 +47,7 @@ function normaliseSlugOptions(opts = {}) {
 
   const separator = opts.separator !== undefined ? String(opts.separator) : '-';
 
-  const suffix = opts.suffix !== undefined ? opts.suffix : 'none';
+  const suffix: SuffixMode = opts.suffix !== undefined ? opts.suffix : 'none';
   if (!SUFFIX_MODES.has(suffix)) {
     throw new TypeError(`suffix must be one of: ${[...SUFFIX_MODES].join(', ')}`);
   }
@@ -63,9 +72,9 @@ function normaliseSlugOptions(opts = {}) {
 /**
  * Convert a string into a URL-friendly slug, with an optional uniqueness suffix.
  *
- * @param {string}      str          - Input string to slugify.
- * @param {SlugOptions} [options={}]
- * @returns {string}
+ * @param str - Input string to slugify.
+ * @param options - Slug options.
+ * @returns URL-friendly slug.
  *
  * @example
  * slugify('Hello World!')                                       // 'hello-world'
@@ -74,7 +83,7 @@ function normaliseSlugOptions(opts = {}) {
  * slugify('Hello World!', { suffix: 'timestamp' })             // 'hello-world-0w3kz8a9-xy4b'
  * slugify('Café au lait', { separator: '_' })                  // 'cafe_au_lait'
  */
-function slugify(str, options = {}) {
+export function slugify(str: string, options: SlugOptions = {}): string {
   const { charset, separator, suffix, tsLength, randomLength } = normaliseSlugOptions(options);
 
   const escapedCharset = charset.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -108,5 +117,3 @@ function slugify(str, options = {}) {
   const ts = encodeTimestamp(BigInt(Date.now()), tsLength, charset);
   return slug ? `${slug}${separator}${ts}${separator}${rand}` : `${ts}${separator}${rand}`;
 }
-
-module.exports = { slugify, normaliseSlugOptions, CHARSETS };

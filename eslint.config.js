@@ -1,44 +1,33 @@
 'use strict';
 
 const js = require('@eslint/js');
+const tseslint = require('typescript-eslint');
 const security = require('eslint-plugin-security');
 const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
     // 1. Files to lint
     {
-        files: ['src/**/*.js', 'tests/**/*.js'],
+        files: ['src/**/*.ts', 'tests/**/*.ts'],
     },
 
     // 2. ESLint core recommended rules
     js.configs.recommended,
 
-    // 3. Security plugin — flags common Node.js security pitfalls
+    // 3. TypeScript-ESLint — parser + recommended rules for .ts files
+    ...tseslint.configs.recommended,
+
+    // 4. Security plugin — flags common security pitfalls
     security.configs.recommended,
 
-    // 4. Prettier compatibility — disables ESLint rules that conflict with Prettier formatting
+    // 5. Prettier compatibility — disables ESLint rules that conflict with Prettier formatting
     prettierConfig,
 
-    // 5. Project-specific rules
+    // 6. Project-specific rules (all TS source + tests)
     {
         languageOptions: {
             ecmaVersion: 2022,
-            sourceType: 'commonjs',
-            globals: {
-                // Node.js globals
-                require: 'readonly',
-                module: 'writable',
-                exports: 'writable',
-                __dirname: 'readonly',
-                __filename: 'readonly',
-                process: 'readonly',
-                Buffer: 'readonly',
-                console: 'readonly',
-                setTimeout: 'readonly',
-                setInterval: 'readonly',
-                clearTimeout: 'readonly',
-                clearInterval: 'readonly',
-            },
+            sourceType: 'module',
         },
         rules: {
             // --- Possible errors ---
@@ -71,24 +60,11 @@ module.exports = [
         },
     },
 
-    // 6. Test-file overrides
+    // 7. Test-file overrides
     {
-        files: ['tests/**/*.js'],
-        languageOptions: {
-            globals: {
-                describe: 'readonly',
-                test: 'readonly',
-                expect: 'readonly',
-                beforeEach: 'readonly',
-                afterEach: 'readonly',
-                beforeAll: 'readonly',
-                afterAll: 'readonly',
-                jest: 'readonly',
-                done: 'readonly',
-            },
-        },
+        files: ['tests/**/*.ts'],
         rules: {
-            // Tests legitimately re-require modules for isolation
+            // Tests legitimately shadow variables for isolation
             'no-shadow': 'warn',
             // Tests may intentionally probe with invalid inputs
             'security/detect-object-injection': 'off',

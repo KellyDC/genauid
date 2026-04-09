@@ -1,9 +1,7 @@
-'use strict';
-
 /**
  * Default character sets for UUID generation.
  */
-const CHARSETS = {
+export const CHARSETS = {
   /** Alphanumeric: digits + lowercase + uppercase */
   ALPHANUMERIC: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   /** Base32 (Crockford): excludes visually ambiguous characters I, L, O, U */
@@ -12,12 +10,15 @@ const CHARSETS = {
   SLUG: '0123456789abcdefghijklmnopqrstuvwxyz',
   /** Hexadecimal */
   HEX: '0123456789abcdef',
-};
+} as const;
+
+/** Alias for CHARSETS (single-word import convenience). */
+export const CHARSET = CHARSETS;
 
 /**
  * Default lengths.
  */
-const DEFAULTS = {
+export const DEFAULTS = {
   /** Total length of a generated time-based UUID */
   UUID_LENGTH: 26,
   /** Number of characters reserved for the timestamp prefix */
@@ -30,6 +31,4 @@ const DEFAULTS = {
   MIN_LENGTH: 10,
   /** Maximum allowed total UUID length */
   MAX_LENGTH: 128,
-};
-
-module.exports = { CHARSETS, DEFAULTS };
+} as const;

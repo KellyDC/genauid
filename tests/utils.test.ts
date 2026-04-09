@@ -1,7 +1,6 @@
-// utils.test.js — tests for the utility functions in utils.js
-'use strict';
+// utils.test.ts — tests for the utility functions in utils.ts
 
-const { randomString, encodeTimestamp, safeStringEqual } = require('../src/utils');
+import { randomString, encodeTimestamp, safeStringEqual } from '../src/utils';
 
 describe('randomString()', () => {
   test('returns empty string for length 0', () => {
@@ -82,7 +81,7 @@ describe('safeStringEqual()', () => {
   });
 
   test('returns false for non-string inputs', () => {
-    expect(safeStringEqual(null, 'hello')).toBe(false);
-    expect(safeStringEqual('hello', undefined)).toBe(false);
+    expect(safeStringEqual(null as unknown as string, 'hello')).toBe(false);
+    expect(safeStringEqual('hello', undefined as unknown as string)).toBe(false);
   });
 });

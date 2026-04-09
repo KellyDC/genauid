@@ -1,7 +1,7 @@
-// slug.test.js — tests for slugify() in slug.js
-'use strict';
+// slug.test.ts — tests for slugify() in slug.ts
 
-const { slugify, normaliseSlugOptions, CHARSETS } = require('../src/slug');
+import { slugify, normaliseSlugOptions } from '../src/slug';
+import { CHARSETS } from '../src/constants';
 
 describe('slugify() — plain output (suffix: none)', () => {
   test('returns a lowercase slug', () => {
@@ -52,13 +52,13 @@ describe('slugify() — suffix: random', () => {
     const result = slugify('Hello World', { suffix: 'random' });
     const parts = result.split('-');
     expect(parts.length).toBe(3); // hello, world, <random>
-    expect(parts[2].length).toBe(8); // default randomLength
+    expect(parts[2]!.length).toBe(8); // default randomLength
   });
 
   test('respects custom randomLength', () => {
     const result = slugify('hello', { suffix: 'random', randomLength: 12 });
     const parts = result.split('-');
-    expect(parts[parts.length - 1].length).toBe(12);
+    expect(parts[parts.length - 1]!.length).toBe(12);
   });
 
   test('produces unique outputs on repeated calls', () => {
@@ -81,15 +81,15 @@ describe('slugify() — suffix: timestamp', () => {
     // structure: hello-world-<ts>-<rand>
     const parts = result.split('-');
     expect(parts.length).toBe(4);
-    expect(parts[2].length).toBe(10); // default tsLength
-    expect(parts[3].length).toBe(8); // default randomLength
+    expect(parts[2]!.length).toBe(10); // default tsLength
+    expect(parts[3]!.length).toBe(8); // default randomLength
   });
 
   test('respects custom tsLength and randomLength', () => {
     const result = slugify('hello', { suffix: 'timestamp', tsLength: 6, randomLength: 4 });
     const parts = result.split('-');
-    expect(parts[parts.length - 2].length).toBe(6);
-    expect(parts[parts.length - 1].length).toBe(4);
+    expect(parts[parts.length - 2]!.length).toBe(6);
+    expect(parts[parts.length - 1]!.length).toBe(4);
   });
 
   test('produces unique outputs on repeated calls', () => {
@@ -112,8 +112,8 @@ describe('slugify() — suffix: timestamp', () => {
     const result = slugify('!!!', { suffix: 'timestamp' });
     const parts = result.split('-');
     expect(parts.length).toBe(2);
-    expect(parts[0].length).toBe(10);
-    expect(parts[1].length).toBe(8);
+    expect(parts[0]!.length).toBe(10);
+    expect(parts[1]!.length).toBe(8);
   });
 });
 
@@ -127,11 +127,11 @@ describe('slugify() — option validation', () => {
   });
 
   test('throws TypeError for non-string charset', () => {
-    expect(() => slugify('hello', { charset: 123 })).toThrow(TypeError);
+    expect(() => slugify('hello', { charset: 123 as unknown as string })).toThrow(TypeError);
   });
 
   test('throws TypeError for invalid suffix value', () => {
-    expect(() => slugify('hello', { suffix: 'fancy' })).toThrow(TypeError);
+    expect(() => slugify('hello', { suffix: 'fancy' as 'none' })).toThrow(TypeError);
   });
 
   test('throws RangeError for tsLength < 1', () => {
@@ -149,7 +149,6 @@ describe('slugify() — empty separator', () => {
   });
 
   test('does not collapse or trim when separator is empty', () => {
-    // All invalid chars are removed (replaced with ''), no trimming needed
     expect(slugify('  hello  ', { separator: '' })).toBe('hello');
     expect(slugify('foo!!!bar', { separator: '' })).toBe('foobar');
   });
@@ -208,7 +207,7 @@ describe('normaliseSlugOptions() — direct validation', () => {
   });
 
   test('stringifies numeric separator', () => {
-    const opts = normaliseSlugOptions({ separator: 0 });
+    const opts = normaliseSlugOptions({ separator: 0 as unknown as string });
     expect(opts.separator).toBe('0');
   });
 });

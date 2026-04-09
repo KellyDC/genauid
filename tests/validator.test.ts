@@ -1,10 +1,10 @@
-// validator.test.js — tests for the validate() function in validator.js
-'use strict';
+// validator.test.ts — tests for the validate() function in validator.ts
 
-const { validate, decodeTimestamp } = require('../src/validator');
-const { generate } = require('../src/generator');
-const { slugify } = require('../src/slug');
-const { CHARSETS } = require('../src/constants');
+import { validate, decodeTimestamp } from '../src/validator';
+import { generate } from '../src/generator';
+import { slugify } from '../src/slug';
+import { CHARSETS } from '../src/constants';
+import { encodeTimestamp, randomString } from '../src/utils';
 
 describe('validate() — valid IDs', () => {
   test('accepts a freshly generated ID with default options', () => {
@@ -19,8 +19,8 @@ describe('validate() — valid IDs', () => {
     const before = Date.now();
     const id = generate();
     const result = validate(id);
-    expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(before - 5);
-    expect(result.timestamp.getTime()).toBeLessThanOrEqual(Date.now() + 10);
+    expect(result.timestamp!.getTime()).toBeGreaterThanOrEqual(before - 5);
+    expect(result.timestamp!.getTime()).toBeLessThanOrEqual(Date.now() + 10);
   });
 
   test('accepts ID generated with ALPHANUMERIC charset', () => {
@@ -36,8 +36,6 @@ describe('validate() — valid IDs', () => {
   });
 
   test('accepts slug generated with slugify() timestamp suffix (no text body)', () => {
-    // When the input produces an empty slug body (all-invalid chars), slugify()
-    // returns <timestamp><sep><random> — the same structure the validator expects.
     const slug = slugify('!!!', { suffix: 'timestamp' });
     const result = validate(slug, {
       charset: CHARSETS.SLUG,
@@ -83,11 +81,8 @@ describe('validate() — invalid inputs', () => {
   });
 
   test('rejects ID with a far-future timestamp', () => {
-    // Manually craft an ID whose timestamp encodes a date 10 years in the future.
-    const { encodeTimestamp } = require('../src/utils');
     const futureMs = BigInt(Date.now() + 10 * 365 * 24 * 3600 * 1000); // ~10 years ahead
     const charset = CHARSETS.BASE32;
-    const { randomString } = require('../src/utils');
     const tsPart = encodeTimestamp(futureMs, 10, charset);
     const randPart = randomString(16, charset);
     const fakeId = tsPart + randPart;
@@ -97,10 +92,8 @@ describe('validate() — invalid inputs', () => {
   });
 
   test('rejects ID with a timestamp before year 2000', () => {
-    const { encodeTimestamp } = require('../src/utils');
     const oldMs = BigInt(0); // Unix epoch, 1970
     const charset = CHARSETS.BASE32;
-    const { randomString } = require('../src/utils');
     const tsPart = encodeTimestamp(oldMs, 10, charset);
     const randPart = randomString(16, charset);
     const fakeId = tsPart + randPart;
@@ -165,7 +158,6 @@ describe('validate() — maxAgeMs option', () => {
 
 describe('decodeTimestamp()', () => {
   test('round-trips through encode → decode', () => {
-    const { encodeTimestamp } = require('../src/utils');
     const ts = BigInt(Date.now());
     const encoded = encodeTimestamp(ts, 10, CHARSETS.BASE32);
     const decoded = decodeTimestamp(encoded, CHARSETS.BASE32);

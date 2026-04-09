@@ -1,22 +1,23 @@
 {
   "compilerOptions": {
-    // Type-check the hand-written declarations and JS source; emit nothing.
-    "noEmit": true,
-    "declaration": false,
+    // Emit declaration files only; esbuild handles JS output.
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "declarationDir": "dist/types",
 
-    // Target ES2020 so bigint (used in decodeTimestamp) is a native type.
+    // Target ES2020 so bigint is a native type. Include dom for Web Crypto API
+    // (globalThis.crypto) which is available in Node 15+, browsers, and edge runtimes.
     "target": "ES2020",
-    "lib": ["ES2020"],
+    "lib": ["ES2020", "DOM"],
 
-    // Node16 validates the exports map and enforces correct import/require
-    // extension rules during development type-checking. The package ships
-    // both CJS (dist/index.cjs) and ESM (dist/index.mjs) via the build step.
-    "module": "Node16",
-    "moduleResolution": "node16",
+    // CommonJS module + bundler resolution: no .js extensions required,
+    // TypeScript resolves foo → foo.ts directly. Correct for esbuild output.
+    "module": "CommonJS",
+    "moduleResolution": "bundler",
 
-    // Enable JS type-checking via JSDoc annotations.
-    "allowJs": true,
-    "checkJs": true,
+    "rootDir": "src",
 
     // Strict type safety.
     "strict": true,
@@ -32,11 +33,8 @@
 
     // Allow default imports from CommonJS modules (improves DX for TS consumers).
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-
-    // Pull in Node.js built-in type definitions.
-    "types": ["node"]
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*.js", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "coverage", "tests"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "coverage", "tests", "dist"]
 }

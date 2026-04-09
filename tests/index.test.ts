@@ -1,7 +1,6 @@
-// index.test.js — tests for the main index.js module of genauid
-'use strict';
+// index.test.ts — tests for the main index.ts module of genauid
 
-const genauid = require('../src/index');
+import * as genauid from '../src/index';
 
 describe('index re-exports', () => {
   test('exports generate function', () => {
@@ -25,6 +24,10 @@ describe('index re-exports', () => {
     expect(genauid.CHARSETS).toHaveProperty('BASE32');
     expect(genauid.CHARSETS).toHaveProperty('SLUG');
     expect(genauid.CHARSETS).toHaveProperty('HEX');
+  });
+
+  test('exports CHARSET alias identical to CHARSETS', () => {
+    expect(genauid.CHARSET).toBe(genauid.CHARSETS);
   });
 
   test('exports DEFAULTS object with expected keys', () => {

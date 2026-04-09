@@ -1,30 +1,35 @@
-'use strict';
+import { CHARSETS, DEFAULTS } from './constants';
+import { randomString, encodeTimestamp } from './utils';
 
-const { CHARSETS, DEFAULTS } = require('./constants');
-const { randomString, encodeTimestamp } = require('./utils');
+export interface GenerateOptions {
+  /** Total length of the generated ID. Default: 26 */
+  length?: number;
+  /** Number of leading chars reserved for the timestamp. Default: 10 */
+  tsLength?: number;
+  /** Character set to use. Default: CHARSETS.BASE32 */
+  charset?: string;
+  /** Optional separator between timestamp and random parts. Default: '' */
+  separator?: string;
+}
 
-/**
- * @typedef {Object} GenerateOptions
- * @property {number}  [length=26]     - Total length of the generated ID.
- * @property {number}  [tsLength=10]   - Number of chars for the timestamp prefix.
- * @property {string}  [charset]       - Character set (defaults to BASE32).
- * @property {string}  [separator='']  - Optional separator between ts and random parts.
- */
+interface NormalisedGenerateOptions {
+  totalLength: number;
+  tsLength: number;
+  randomLength: number;
+  charset: string;
+  separator: string;
+}
 
 /**
  * Validate and normalise options for generate().
- *
- * @param {GenerateOptions} opts
- * @returns {{ totalLength: number, tsLength: number, randomLength: number, charset: string, separator: string }}
  */
-function normaliseOptions(opts = {}) {
+function normaliseOptions(opts: GenerateOptions = {}): NormalisedGenerateOptions {
   const charset = opts.charset !== undefined ? opts.charset : CHARSETS.BASE32;
 
   if (typeof charset !== 'string' || charset.length < 2) {
     throw new TypeError('charset must be a string with at least 2 characters');
   }
 
-  // Deduplicate and check for sorted order (required for sortability).
   const unique = [...new Set(charset)];
   if (unique.length !== charset.length) {
     throw new TypeError('charset must not contain duplicate characters');
@@ -62,16 +67,16 @@ function normaliseOptions(opts = {}) {
  *
  * The first `tsLength` characters encode the current Unix timestamp in
  * milliseconds using the provided charset so that lexicographic sort equals
- * chronological order.  The remaining characters are cryptographically random.
+ * chronological order. The remaining characters are cryptographically random.
  *
- * @param {GenerateOptions} [options={}]
- * @returns {string} The generated ID.
+ * @param options - Generation options.
+ * @returns The generated ID.
  *
  * @example
  * const id = generate();            // '01J3RVMQ8Z4KXNTBPD6S7WHMF'
  * const id = generate({ length: 32, charset: CHARSETS.ALPHANUMERIC });
  */
-function generate(options = {}) {
+export function generate(options: GenerateOptions = {}): string {
   const { tsLength, randomLength, charset, separator } = normaliseOptions(options);
 
   const ts = BigInt(Date.now());
@@ -80,5 +85,3 @@ function generate(options = {}) {
 
   return tsPart + separator + randPart;
 }
-
-module.exports = { generate, normaliseOptions, CHARSETS };
