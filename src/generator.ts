@@ -85,3 +85,38 @@ export function generate(options: GenerateOptions = {}): string {
 
   return tsPart + separator + randPart;
 }
+
+/**
+ * Generate a UUID version 7 (RFC 9562).
+ *
+ * UUIDv7 encodes a 48-bit Unix timestamp (milliseconds) in the most
+ * significant bits, followed by version/variant markers and 74 bits of
+ * cryptographically random data, making it both time-sortable and globally
+ * unique.
+ *
+ * @returns A UUID v7 string in the canonical `xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx` format.
+ *
+ * @example
+ * const id = generateUUID7(); // '019040c8-e1a3-7b2e-8f1d-3a2b5c6d7e8f'
+ */
+export function generateUUID7(): string {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+
+  // Overwrite the first 48 bits with the current Unix timestamp in ms.
+  const ts = BigInt(Date.now());
+  bytes[0] = Number((ts >> 40n) & 0xffn);
+  bytes[1] = Number((ts >> 32n) & 0xffn);
+  bytes[2] = Number((ts >> 24n) & 0xffn);
+  bytes[3] = Number((ts >> 16n) & 0xffn);
+  bytes[4] = Number((ts >> 8n) & 0xffn);
+  bytes[5] = Number(ts & 0xffn);
+
+  // Set version to 7 in the top nibble of byte 6 (bits 48–51).
+  bytes[6] = (bytes[6]! & 0x0f) | 0x70;
+
+  // Set RFC 4122 variant to 0b10xx in the top two bits of byte 8 (bits 64–65).
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}

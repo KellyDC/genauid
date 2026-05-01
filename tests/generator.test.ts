@@ -1,6 +1,6 @@
 // generator.test.ts — tests for the generate() function in generator.ts
 
-import { generate } from '../src/generator';
+import { generate, generateUUID7 } from '../src/generator';
 import { CHARSETS } from '../src/constants';
 import { DEFAULTS } from '../src/constants';
 
@@ -98,6 +98,56 @@ describe('generate() — performance', () => {
   test('generates 10,000 IDs in under 1 second', () => {
     const start = Date.now();
     for (let i = 0; i < 10_000; i++) generate();
+    expect(Date.now() - start).toBeLessThan(1000);
+  });
+});
+
+// UUID7_REGEX: canonical xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx
+const UUID7_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+describe('generateUUID7()', () => {
+  test('returns a string in canonical UUID format', () => {
+    const id = generateUUID7();
+    expect(typeof id).toBe('string');
+    expect(id.length).toBe(36);
+  });
+
+  test('matches the UUIDv7 pattern (version nibble = 7, variant = 8/9/a/b)', () => {
+    for (let i = 0; i < 100; i++) {
+      expect(generateUUID7()).toMatch(UUID7_REGEX);
+    }
+  });
+
+  test('embeds the current timestamp in the first 48 bits', () => {
+    const before = Date.now();
+    const id = generateUUID7();
+    const after = Date.now();
+
+    // Reconstruct the 48-bit ms timestamp from the first two UUID segments.
+    const hex = id.replace(/-/g, '').slice(0, 12);
+    const ts = parseInt(hex, 16);
+
+    expect(ts).toBeGreaterThanOrEqual(before);
+    expect(ts).toBeLessThanOrEqual(after);
+  });
+
+  test('produces unique IDs on repeated calls', () => {
+    const ids = new Set(Array.from({ length: 1000 }, () => generateUUID7()));
+    expect(ids.size).toBe(1000);
+  });
+
+  test('IDs are lexicographically sortable by generation time', (done) => {
+    const a = generateUUID7();
+    setTimeout(() => {
+      const b = generateUUID7();
+      expect(b >= a).toBe(true);
+      done();
+    }, 2);
+  });
+
+  test('generates 10,000 UUIDs in under 1 second', () => {
+    const start = Date.now();
+    for (let i = 0; i < 10_000; i++) generateUUID7();
     expect(Date.now() - start).toBeLessThan(1000);
   });
 });

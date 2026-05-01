@@ -1,4 +1,4 @@
-export { generate } from './generator';
+export { generate, generateUUID7 } from './generator';
 export type { GenerateOptions } from './generator';
 
 export { slugify } from './slug';
