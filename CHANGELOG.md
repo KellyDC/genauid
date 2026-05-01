@@ -1,6 +1,11 @@
 # Changelog for `genauid`
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-05-01
+### Added
+- `generateUUID7()` — generates a UUID version 7 compliant with RFC 9562. Encodes a 48-bit Unix millisecond timestamp in the most significant bits, sets the version nibble to `7` and the RFC 4122 variant bits to `0b10xx`, and fills the remaining 74 bits with cryptographically random data. Returns the canonical `xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx` string format.
+- 6 new tests for `generateUUID7()` covering format, version/variant bits, embedded timestamp accuracy, uniqueness, lexicographic sortability, and throughput. Test count is now 98.
+
 ## [2.0.0] - 2026-04-09
 ### Changed
 - **Full TypeScript rewrite.** All source files converted from JavaScript (JSDoc) to TypeScript. Types are now first-class and ship as generated `.d.ts` / `.d.mts` declaration files.

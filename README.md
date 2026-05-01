@@ -7,6 +7,7 @@ Inspired by the stern and precise First-Class Mage Genau from Frieren: Beyond Jo
 ## Key Features
 
 - **Sortable by creation time** — lexicographic order equals chronological order, enabling efficient B-tree index range scans.
+- **UUID v7 support** — `generateUUID7()` produces RFC 9562-compliant UUIDs in the canonical `xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx` format.
 - **Cryptographically random** — uses `globalThis.crypto.getRandomValues()` with bias elimination, never `Math.random()`.
 - **Environment-agnostic** — no Node.js built-ins required; works in browsers, Cloudflare Workers, Deno, and Bun out of the box.
 - **Dual CJS + ESM output** — ships `dist/index.cjs` and `dist/index.mjs` with full tree-shaking support (`"sideEffects": false`).
@@ -14,7 +15,7 @@ Inspired by the stern and precise First-Class Mage Genau from Frieren: Beyond Jo
 - **Human-readable slugs** — `slugify()` converts any string to a URL-safe slug, with optional random or timestamp suffix for collision avoidance.
 - **Validation** — built-in validator checks format, character set, and optionally enforces a maximum age.
 - **Full TypeScript types** — `.d.ts` / `.d.mts` declarations generated from TypeScript source.
-- **100% test coverage** — 92 tests covering edge cases, security, and performance.
+- **100% test coverage** — 98 tests covering edge cases, security, and performance.
 
 ## Requirements
 
@@ -29,11 +30,15 @@ npm install genauid
 ## Quick Start
 
 ```js
-import { generate, slugify, validate, CHARSETS } from 'genauid';
+import { generate, generateUUID7, slugify, validate, CHARSETS } from 'genauid';
 
 // Generate a time-based sortable ID (26 chars, BASE32 charset by default)
 const id = generate();
 console.log(id); // e.g. '01J3RVMQ8Z4KXNTBPD6S7WHMF'
+
+// Generate a standard UUID v7 (RFC 9562)
+const uuid = generateUUID7();
+console.log(uuid); // e.g. '019040c8-e1a3-7b2e-8f1d-3a2b5c6d7e8f'
 
 // Slugify a string (plain)
 const slug = slugify('Hello World');
@@ -88,6 +93,28 @@ generate({ tsLength: 10, length: 27, separator: '-' });
 // HEX IDs for legacy systems
 generate({ charset: CHARSETS.HEX, length: 32 });
 ```
+
+---
+
+### `generateUUID7(): string`
+
+Generates a UUID version 7 compliant with [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562).
+
+The first 48 bits encode the current Unix timestamp in milliseconds, making UUIDv7 values time-sortable. The remaining bits are cryptographically random, with the version nibble set to `7` and the RFC 4122 variant bits set to `0b10xx`.
+
+#### Example
+
+```js
+const uuid = generateUUID7();
+console.log(uuid); // e.g. '019040c8-e1a3-7b2e-8f1d-3a2b5c6d7e8f'
+
+// UUIDs are lexicographically sortable by generation time
+const a = generateUUID7();
+const b = generateUUID7();
+console.log(b >= a); // true
+```
+
+> **Note:** `generateUUID7()` takes no options. For customisable length, charset, or separator, use `generate()` instead.
 
 ---
 
@@ -273,6 +300,7 @@ Benchmarked on Node.js 24 (Apple M-class / modern x86):
 | Operation | Throughput |
 |---|---|
 | `generate()` | > 100,000 IDs/s |
+| `generateUUID7()` | > 100,000 UUIDs/s |
 | `slugify()` (plain) | > 100,000 slugs/s |
 | `validate()` | > 500,000 validations/s |
 
@@ -298,6 +326,12 @@ Coverage thresholds (enforced):
 - Lines: 90%
 
 Actual coverage of this release: 100% statements, 97.84% branches, 100% functions, 100% lines.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 92 tests pass, ESLint clean, 100% statement/function/line coverage.
 
