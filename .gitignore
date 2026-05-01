@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 # Temporary folders
 tmp
 temp
+
+# Compiled output
+*.tgz
